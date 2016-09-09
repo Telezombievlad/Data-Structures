@@ -34,6 +34,21 @@ namespace MyVectorResizableDynamicArrayOfPointersRepresentation
 				guard1_     (_detail::Guard::GUARD1)
 			{}
 
+			Vector(std::initializer_list<T> list) :
+				guard0_     (_detail::Guard::GUARD0),
+				ptrs_       ((list.size() == 0)? nullptr : new T*[list.size()]()),
+				size_       (list.size()),
+				autoResize_ (false),
+				guard1_     (_detail::Guard::GUARD1)
+			{
+				auto j = list.begin();
+				for (size_t i = 0; i < size_ && j != list.end(); ++i, ++j)
+				{
+					ptrs_[i] = new T();
+					*ptrs_[i] = *j;
+				}
+			}
+
 			Vector(const Vector& that) :
 				guard0_     (_detail::Guard::GUARD0),
 				ptrs_       (that.size_ == 0 ? nullptr : new T*[that.size_]()),
@@ -58,7 +73,12 @@ namespace MyVectorResizableDynamicArrayOfPointersRepresentation
 				}
 			}
 
-			Vector(Vector&& that) : Vector(0, false)
+			Vector(Vector&& that) :
+				guard0_     (_detail::Guard::GUARD0),
+				ptrs_       (that.ptrs_),
+				size_       (that.size_),
+				autoResize_ (that.autoResize_),
+				guard1_     (_detail::Guard::GUARD1)
 			{
 				try { that.throwIfNotOk(); }
 				catch (MyException::Exception exc)
@@ -66,22 +86,7 @@ namespace MyVectorResizableDynamicArrayOfPointersRepresentation
 					throw MyException::Exception("Vector::Vector(Vector&&): Moving from messed up vector object", PROGRAM_POS, exc);
 				}
 
-				swap(*this, that);
-			}
-
-			Vector(std::initializer_list<T> list) :
-				guard0_     (_detail::Guard::GUARD0),
-				ptrs_       ((list.size() == 0)? nullptr : new T*[list.size()]()),
-				size_       (list.size()),
-				autoResize_ (false),
-				guard1_     (_detail::Guard::GUARD1)
-			{
-				auto j = list.begin();
-				for (size_t i = 0; i < size_ && j != list.end(); ++i, ++j)
-				{
-					ptrs_[i] = new T();
-					*ptrs_[i] = *j;
-				}
+				that.ptrs_ = nullptr;
 			}
 
 			~Vector()
@@ -116,7 +121,7 @@ namespace MyVectorResizableDynamicArrayOfPointersRepresentation
 					throw MyException::Exception("Vector::operator=(const Vector&): Copying from messed up vector object", PROGRAM_POS, exc);
 				}
 
-				Vector toSwap = that;
+				Vector toSwap(that);
 
 				swap(*this, toSwap);
 
@@ -296,11 +301,11 @@ namespace MyVectorResizableDynamicArrayOfPointersRepresentation
 					throw MyException::Exception("Vector::resize(): Invalid vector", PROGRAM_POS, exc);
 				}
 
-				Vector newArr(newSize, true);
+				Vector newArr(newSize, autoResize_);
 
 				for (size_t i = 0; i < newSize && i < size_; ++i)
 				{
-					newArr[i] = *ptrs_[i];
+					if (ptrs_[i] != nullptr) newArr.set(i, *ptrs_[i]);
 				}
 
 				swap(*this, newArr);

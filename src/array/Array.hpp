@@ -102,9 +102,6 @@ namespace MyArrayConstSizeStaticArrayRepresentation
 					throw MyException::Exception("Array::operator=(const Array&): Copying from messed up array object", PROGRAM_POS, exc);
 				}
 
-				guard0_ = that.guard0_;
-				guard1_ = that.guard1_;
-
 				for (size_t i = 0; i < size_; ++i)
 				{
 					array_[i] = that.array_[i];
